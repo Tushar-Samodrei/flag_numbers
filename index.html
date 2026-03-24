@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flagged Numbers Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --ink: #1f1f28;
+      --muted: #5f6678;
+      --line: #d6dceb;
+      --accent: #0d7f8c;
+      --accent-2: #1ca4b8;
+      --danger: #b3293e;
+      --shadow: 0 14px 40px rgba(13, 21, 42, 0.12);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 400px at -10% -10%, #c9f0ee 0%, rgba(201, 240, 238, 0) 70%),
+        radial-gradient(900px 300px at 110% 0%, #ffe1bf 0%, rgba(255, 225, 191, 0) 65%),
+        var(--bg);
+      padding: 20px;
+    }
+
+    .shell {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      animation: lift-in 420ms ease-out;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.6vw, 2rem);
+      letter-spacing: 0.3px;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn,
+    .input,
+    .select {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 12px;
+      height: 42px;
+      padding: 0 14px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      color: var(--ink);
+    }
+
+    .btn {
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+      font-weight: 500;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(15, 29, 52, 0.12);
+      border-color: #a4b8db;
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid #e4e8f2;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fbfcff, #f6f8fe);
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 72vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eef3fd;
+      color: #21304d;
+      font-size: 0.79rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #edf0f6;
+      font-size: 0.9rem;
+      vertical-align: top;
+    }
+
+    tbody tr:hover {
+      background: #f9fbff;
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.84rem;
+      letter-spacing: 0.02em;
+    }
+
+    .flag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: var(--danger);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 100px;
+      background: var(--danger);
+      box-shadow: 0 0 0 2px rgba(179, 41, 62, 0.12);
+    }
+
+    .status,
+    .error {
+      margin: 10px 2px 0;
+      font-size: 0.9rem;
+      min-height: 20px;
+    }
+
+    .status {
+      color: var(--muted);
+    }
+
+    .error {
+      color: var(--danger);
+      font-weight: 500;
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+      background: #f8faff;
+      flex-wrap: wrap;
+    }
+
+    .pager-left,
+    .pager-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .page-input {
+      width: 90px;
+      text-align: center;
+    }
+
+    @media (max-width: 840px) {
+      body {
+        padding: 14px;
+      }
+
+      .btn,
+      .input,
+      .select {
+        height: 40px;
+      }
+
+      .card-top,
+      .pager {
+        padding: 12px;
+      }
+    }
+
+    @keyframes lift-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="header">
+      <div>
+        <h1>Flagged Numbers</h1>
+        <p class="subtitle">Live view from tele-prescribers requests API</p>
+      </div>
+      <div class="controls">
+        <label for="limitSelect" class="meta">Rows per page</label>
+        <select id="limitSelect" class="select" aria-label="Rows per page">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+        <button id="downloadBtn" class="btn primary" type="button">Download CSV</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-top">
+        <div id="summary" class="meta">Waiting for data...</div>
+        <div id="pageMeta" class="meta"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tele ID</th>
+              <th>Prescriber ID</th>
+              <th>Name</th>
+              <th>Company</th>
+              <th>Phone</th>
+              <th>NPI</th>
+              <th>Type</th>
+              <th>Flag Date</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <div class="pager-left">
+          <button id="firstBtn" class="btn" type="button">First</button>
+          <button id="prevBtn" class="btn" type="button">Prev</button>
+          <input id="pageInput" class="input page-input" type="number" min="1" value="1" />
+          <button id="goBtn" class="btn" type="button">Go</button>
+          <button id="nextBtn" class="btn" type="button">Next</button>
+          <button id="lastBtn" class="btn" type="button">Last</button>
+        </div>
+        <div class="pager-right">
+          <span id="pagerText" class="meta"></span>
+        </div>
+      </div>
+    </section>
+
+    <div id="status" class="status"></div>
+    <div id="error" class="error"></div>
+  </main>
+
+  <script>
+    const API_BASE = "https://backend.samodrei.com/tele-prescribers-requests/flagged-numbers";
+
+    const state = {
+      page: 1,
+      limit: 50,
+      total: 0,
+      totalPages: 1,
+      loading: false,
+      rows: []
+    };
+
+    const el = {
+      rows: document.getElementById("rows"),
+      summary: document.getElementById("summary"),
+      pageMeta: document.getElementById("pageMeta"),
+      pagerText: document.getElementById("pagerText"),
+      status: document.getElementById("status"),
+      error: document.getElementById("error"),
+      pageInput: document.getElementById("pageInput"),
+      limitSelect: document.getElementById("limitSelect"),
+      firstBtn: document.getElementById("firstBtn"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      lastBtn: document.getElementById("lastBtn"),
+      goBtn: document.getElementById("goBtn"),
+      downloadBtn: document.getElementById("downloadBtn")
+    };
+
+    function formatDate(isoString) {
+      if (!isoString) return "-";
+      const date = new Date(isoString);
+      if (Number.isNaN(date.getTime())) return isoString;
+      return date.toLocaleString();
+    }
+
+    function sanitize(value) {
+      if (value === null || value === undefined || value === "") return "-";
+      return String(value);
+    }
+
+    function fullName(row) {
+      const first = row.first_name || row.First || "";
+      const last = row.last_name || row.Last || "";
+      const combined = `${first} ${last}`.trim();
+      return combined || "-";
+    }
+
+    function updatePagerButtons() {
+      const atFirst = state.page <= 1;
+      const atLast = state.page >= state.totalPages;
+      el.firstBtn.disabled = state.loading || atFirst;
+      el.prevBtn.disabled = state.loading || atFirst;
+      el.nextBtn.disabled = state.loading || atLast;
+      el.lastBtn.disabled = state.loading || atLast;
+      el.goBtn.disabled = state.loading;
+      el.pageInput.disabled = state.loading;
+      el.limitSelect.disabled = state.loading;
+      el.downloadBtn.disabled = state.loading || state.rows.length === 0;
+    }
+
+    function renderRows() {
+      if (state.rows.length === 0) {
+        el.rows.innerHTML = `<tr><td colspan="8" class="meta">No rows found for this page.</td></tr>`;
+        return;
+      }
+
+      el.rows.innerHTML = state.rows.map((row) => {
+        return `
+          <tr>
+            <td class="mono">${sanitize(row.tele_id)}</td>
+            <td class="mono">${sanitize(row.prescriberId)}</td>
+            <td>${sanitize(fullName(row))}</td>
+            <td>${sanitize(row.company_name)}</td>
+            <td class="mono">${sanitize(row.phone || row.phone_number)}</td>
+            <td class="mono">${sanitize(row.npi)}</td>
+            <td>
+              <span class="flag">
+                <span class="dot"></span>${sanitize(row.Type)}
+              </span>
+            </td>
+            <td>${formatDate(row.FlaggedPhoneNumberDate)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function updateMeta() {
+      const start = state.total === 0 ? 0 : (state.page - 1) * state.limit + 1;
+      const end = Math.min(state.page * state.limit, state.total);
+      el.summary.textContent = `Showing ${start}-${end} of ${state.total.toLocaleString()} flagged records`;
+      el.pageMeta.textContent = `Total pages: ${state.totalPages.toLocaleString()}`;
+      el.pagerText.textContent = `Page ${state.page.toLocaleString()} of ${state.totalPages.toLocaleString()}`;
+      el.pageInput.value = String(state.page);
+      el.pageInput.max = String(state.totalPages);
+    }
+
+    function setStatus(message) {
+      el.status.textContent = message;
+    }
+
+    function setError(message) {
+      el.error.textContent = message;
+    }
+
+    async function fetchPage(page) {
+      state.loading = true;
+      updatePagerButtons();
+      setError("");
+      setStatus(`Loading page ${page}...`);
+
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(state.limit)
+      });
+
+      try {
+        const response = await fetch(`${API_BASE}?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!payload.success) {
+          throw new Error("API returned unsuccessful response");
+        }
+
+        state.page = Number(payload.page) || page;
+        state.limit = Number(payload.limit) || state.limit;
+        state.total = Number(payload.total) || 0;
+        state.totalPages = Math.max(1, Number(payload.totalPages) || 1);
+        state.rows = Array.isArray(payload.data) ? payload.data : [];
+
+        renderRows();
+        updateMeta();
+        setStatus(`Loaded page ${state.page} (${state.rows.length} rows)`);
+      } catch (error) {
+        state.rows = [];
+        renderRows();
+        setError(`Failed to load data: ${error.message}`);
+        setStatus("");
+      } finally {
+        state.loading = false;
+        updatePagerButtons();
+      }
+    }
+
+    function csvEscape(value) {
+      const text = value === null || value === undefined ? "" : String(value);
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function buildCsv(rows) {
+      const headers = [
+        "tele_id",
+        "prescriberId",
+        "first_name",
+        "last_name",
+        "company_name",
+        "phone",
+        "npi",
+        "Type",
+        "FlaggedPhoneNumberDate"
+      ];
+
+      const lines = [headers.join(",")];
+      for (const row of rows) {
+        const values = [
+          row.tele_id,
+          row.prescriberId,
+          row.first_name || row.First,
+          row.last_name || row.Last,
+          row.company_name,
+          row.phone || row.phone_number,
+          row.npi,
+          row.Type,
+          row.FlaggedPhoneNumberDate
+        ].map(csvEscape);
+        lines.push(values.join(","));
+      }
+
+      return lines.join("\n");
+    }
+
+    function downloadCurrentPageCsv() {
+      if (state.rows.length === 0) {
+        setError("No rows to export on this page.");
+        return;
+      }
+
+      setError("");
+      const csvText = buildCsv(state.rows);
+      const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.href = url;
+      link.download = `flagged-numbers-page-${state.page}-${timestamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setStatus(`CSV downloaded for page ${state.page}`);
+    }
+
+    function clampPage(page) {
+      if (!Number.isFinite(page)) return 1;
+      return Math.max(1, Math.min(state.totalPages, Math.trunc(page)));
+    }
+
+    function goToPage(inputPage) {
+      const target = clampPage(inputPage);
+      if (target === state.page && state.rows.length > 0) return;
+      fetchPage(target);
+    }
+
+    el.limitSelect.addEventListener("change", () => {
+      state.limit = Number(el.limitSelect.value) || 50;
+      goToPage(1);
+    });
+
+    el.firstBtn.addEventListener("click", () => goToPage(1));
+    el.prevBtn.addEventListener("click", () => goToPage(state.page - 1));
+    el.nextBtn.addEventListener("click", () => goToPage(state.page + 1));
+    el.lastBtn.addEventListener("click", () => goToPage(state.totalPages));
+    el.goBtn.addEventListener("click", () => goToPage(Number(el.pageInput.value)));
+
+    el.pageInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        goToPage(Number(el.pageInput.value));
+      }
+    });
+
+    el.downloadBtn.addEventListener("click", downloadCurrentPageCsv);
+
+    fetchPage(1);
+  </script>
+</body>
+</html>
